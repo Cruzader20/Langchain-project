@@ -161,18 +161,34 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
                 
                 # Generate agent responses
-                agent_responses = await agent_manager.process_user_message(
-                    user_message, 
-                    active_agents
-                )
-                
-                # Send each agent response with delay for realistic effect
-                for i, response in enumerate(agent_responses):
-                    await asyncio.sleep(1.5)  # Simulate thinking time
+                logger.info(f"Calling agent_manager.process_user_message with message: '{user_message}' and agents: {active_agents}")
+                try:
+                    agent_responses = await agent_manager.process_user_message(
+                        user_message, 
+                        active_agents
+                    )
+                    logger.info(f"Agent manager returned {len(agent_responses)} responses")
+                    
+                    # Send each agent response with delay for realistic effect
+                    for i, response in enumerate(agent_responses):
+                        logger.info(f"Sending response {i+1}/{len(agent_responses)} from agent {response.get('agentId', 'unknown')}")
+                        await asyncio.sleep(1.5)  # Simulate thinking time
+                        await manager.send_personal_message(
+                            json.dumps({
+                                "type": "agent_response",
+                                **response
+                            }),
+                            websocket
+                        )
+                except Exception as e:
+                    logger.error(f"Error in agent_manager.process_user_message: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    # Send error message to client
                     await manager.send_personal_message(
                         json.dumps({
-                            "type": "agent_response",
-                            **response
+                            "type": "error",
+                            "message": f"Error processing message: {str(e)}"
                         }),
                         websocket
                     )

@@ -132,29 +132,47 @@ class AgentManager:
         tasks = []
         for agent_id in participating_agents:
             if agent_id in self.agents:
+                logger.info(f"Creating task for agent: {agent_id}")
                 task = self._generate_agent_response(agent_id, message)
                 tasks.append(task)
+            else:
+                logger.warning(f"Agent {agent_id} not found in self.agents")
+        
+        logger.info(f"Created {len(tasks)} tasks for agent processing")
         
         # Execute all agent responses concurrently
         if tasks:
+            logger.info("Starting asyncio.gather for agent responses")
             agent_responses = await asyncio.gather(*tasks, return_exceptions=True)
+            logger.info(f"Received {len(agent_responses)} responses from asyncio.gather")
             
             for i, response in enumerate(agent_responses):
                 if isinstance(response, Exception):
                     logger.error(f"Error from agent {participating_agents[i]}: {response}")
+                    import traceback
+                    logger.error(f"Exception traceback: {traceback.format_exc()}")
                 elif response:
+                    logger.info(f"Adding response from agent {participating_agents[i]}: {type(response)}")
                     responses.append(response)
+                else:
+                    logger.warning(f"Empty response from agent {participating_agents[i]}")
+        else:
+            logger.warning("No tasks created for agent processing")
         
+        logger.info(f"Returning {len(responses)} total responses")
         return responses
 
     async def _generate_agent_response(self, agent_id: str, message: str) -> Optional[AgentResponse]:
         """Generate a response from a specific agent"""
         try:
+            logger.info(f"Starting _generate_agent_response for agent {agent_id}")
             agent = self.agents[agent_id]
             config = self.agent_configs[agent_id]
             
+            logger.info(f"Calling agent.process_message for agent {agent_id}")
             # Generate response using the agent
             content = await agent.process_message(message)
+            logger.info(f"Agent {agent_id} returned content: {content[:100] if content else 'None'}...")
             
             # Create response object
             response = AgentResponse(
@@ -167,10 +185,13 @@ class AgentManager:
                 confidence=random.uniform(0.8, 0.95)  # Simulate confidence score
             )
             
+            logger.info(f"Created AgentResponse object for agent {agent_id}")
             return response
             
         except Exception as e:
             logger.error(f"Error generating response from agent {agent_id}: {e}")
+            import traceback
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
             return None
 
     async def get_market_research(self, query: str) -> MarketResearch:
