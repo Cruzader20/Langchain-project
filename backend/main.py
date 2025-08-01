@@ -169,10 +169,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Send each agent response with delay for realistic effect
                 for i, response in enumerate(agent_responses):
                     await asyncio.sleep(1.5)  # Simulate thinking time
+                    
+                    # Convert AgentResponse to dict for JSON serialization
+                    if hasattr(response, 'dict'):
+                        response_dict = response.dict()
+                    else:
+                        response_dict = response
+                    
                     await manager.send_personal_message(
                         json.dumps({
                             "type": "agent_response",
-                            **response
+                            **response_dict
                         }),
                         websocket
                     )
