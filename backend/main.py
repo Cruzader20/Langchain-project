@@ -171,12 +171,12 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     # Send each agent response with delay for realistic effect
                     for i, response in enumerate(agent_responses):
-                        logger.info(f"Sending response {i+1}/{len(agent_responses)} from agent {response.get('agentId', 'unknown')}")
+                        logger.info(f"Sending response {i+1}/{len(agent_responses)} from agent {response.agentId}")
                         await asyncio.sleep(1.5)  # Simulate thinking time
                         await manager.send_personal_message(
                             json.dumps({
                                 "type": "agent_response",
-                                **response
+                                **response.model_dump()
                             }),
                             websocket
                         )
